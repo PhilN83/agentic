@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hugging Face Vision Agent (Qwen2.5-VL)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .agent-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+        #logConsole::-webkit-scrollbar { width: 4px; }
+        #logConsole::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .terminal-glow { box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
+    </style>
+</head>
+<body class="bg-[#050507] text-slate-100 font-sans p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-blue-900/30 pb-6 gap-4">
+            <div>
+                <h1 class="text-3xl font-black tracking-tighter text-blue-500 uppercase italic">HF <span class="text-white not-italic">Surgical Agent</span></h1>
+                <p class="text-slate-500 text-xs font-mono tracking-widest mt-1">MODEL: QWEN2.5-VL-7B-INSTRUCT / ZERO-COST INFERENCE</p>
+            </div>
+            <div id="statusIndicator" class="px-4 py-2 rounded-full bg-slate-900 text-[10px] font-bold border border-slate-800 tracking-widest uppercase shadow-xl">
+                Status: Standby
+            </div>
+        </div>
+
+        <!-- API Config -->
+        <div id="configSection" class="bg-slate-900/50 p-5 rounded-xl mb-6 border border-slate-800 terminal-glow">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-2">Hugging Face Token (hf_...)</label>
+                    <input type="password" id="apiKey" placeholder="Paste your token from settings/tokens" 
+                           class="w-full bg-black border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500 transition-all font-mono text-sm">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Endpoint Target</label>
+                    <input type="text" id="modelId" value="Qwen/Qwen2.5-VL-7B-Instruct" 
+                           class="w-full bg-black/30 border border-slate-800 rounded-lg p-3 text-slate-500 focus:outline-none font-mono text-sm" readonly>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Instructions Panel -->
+            <div class="lg:col-span-5 space-y-4">
+                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 shadow-2xl">
+                    <h2 class="text-xs font-bold uppercase mb-4 text-slate-400 tracking-widest">Agent Directive</h2>
+                    <textarea id="userObjective" rows="8" 
+                              class="w-full bg-black/50 border border-slate-800 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-blue-500 transition-all placeholder:text-slate-800 leading-relaxed"
+                              placeholder="Describe exactly what the agent should look for..."></textarea>
+                    
+                    <div class="flex flex-col gap-3 mt-6">
+                        <button onclick="startAgent()" id="runBtn"
+                                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black py-4 rounded-xl transition-all text-xs uppercase tracking-widest shadow-lg shadow-blue-900/20">
+                            Initialize Vision Loop
+                        </button>
+                        <button onclick="stopAgent()" 
+                                class="w-full bg-slate-800/50 hover:bg-red-900 text-white py-2 rounded-xl transition-all text-[10px] font-bold uppercase tracking-widest border border-slate-700">
+                            Terminate Loop
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Execution Logs -->
+            <div class="lg:col-span-7 space-y-4">
+                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 h-[500px] flex flex-col shadow-2xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xs font-bold uppercase text-slate-400 tracking-widest">Logic Stream</h2>
+                        <div id="cycleCount" class="text-[10px] font-mono text-blue-500 font-bold">CYCLES: 0</div>
+                    </div>
+                    <div id="logConsole" class="flex-1 overflow-y-auto font-mono text-[11px] space-y-3 pr-2 scroll-smooth">
+                        <div class="text-slate-600 italic">> Qwen2.5-VL Engine Ready. Awaiting HF Token...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let agentActive = false;
+        let screenStream = null;
+        let videoTrack = null;
+        let cycleCounter = 0;
+        const logConsole = document.getElementById('logConsole');
+
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            const styles = {
+                'info': 'text-slate-500',
+                'thought': 'text-blue-400 border-l-2 border-blue-900 pl-3 ml-1',
+                'action': 'text-emerald-400 font-bold bg-emerald-950/10 p-2 rounded-lg border border-emerald-900/20',
+                'error': 'text-red-500 font-bold'
+            };
+            div.className = styles[type] || 'text-slate-500';
+            div.innerHTML = `<span class="opacity-30 text-[9px] mr-2">${new Date().toLocaleTimeString()}</span> ${msg}`;
+            logConsole.appendChild(div);
+            logConsole.scrollTop = logConsole.scrollHeight;
+        }
+
+        async function startAgent() {
+            const key = document.getElementById('apiKey').value;
+            const objective = document.getElementById('userObjective').value;
+
+            if (!key) return log("TOKEN MISSING: Hugging Face token is required.", "error");
+            if (!objective) return log("INPUT ERROR: Please define a mission objective.", "error");
+
+            try {
+                log("Requesting Screen Stream (Select the target tab)...");
+                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" } });
+                videoTrack = screenStream.getVideoTracks()[0];
+                
+                agentActive = true;
+                const status = document.getElementById('statusIndicator');
+                status.innerText = "Status: ACTIVE";
+                status.classList.add('agent-pulse', 'bg-blue-600', 'text-white');
+                
+                log("Vision Bridge Connected. Initializing Cycle 1.");
+                runCycle(objective, key);
+            } catch (err) {
+                log("Startup Aborted: " + err.message, "error");
+            }
+        }
+
+        async function runCycle(objective, key) {
+            if (!agentActive) return;
+
+            try {
+                cycleCounter++;
+                document.getElementById('cycleCount').innerText = `CYCLES: ${cycleCounter}`;
+                
+                const base64Image = await captureFrame();
+                log("Analyzing viewport state...", "info");
+
+                const result = await callHuggingFace(objective, key, base64Image);
+                
+                log(result.analysis, "thought");
+                log(`EXECUTING: ${result.command}`, "action");
+
+                if (agentActive) {
+                    setTimeout(() => runCycle(objective, key), 15000); // 15s to respect free tier rate limits
+                }
+            } catch (err) {
+                log("Inference Error: " + err.message, "error");
+                // If it's a fetch error, it might be a temporary network issue or rate limit
+                if (agentActive) setTimeout(() => runCycle(objective, key), 8000);
+            }
+        }
+
+        async function captureFrame() {
+            const imageCapture = new ImageCapture(videoTrack);
+            const bitmap = await imageCapture.grabFrame();
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(bitmap, 0, 0);
+            // Qwen2.5-VL prefers slightly higher quality for coordinate precision
+            return canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+        }
+
+        async function callHuggingFace(objective, key, imageData) {
+            const model = document.getElementById('modelId').value;
+            const url = `https://api-inference.huggingface.co/models/${model}`;
+
+            // Updated prompt structure for Qwen2.5-VL tactical navigation
+            const prompt = `<|im_start|>system\nYou are a surgical browser agent. Analyze screenshots and provide JSON actions: {"analysis": "what you see", "command": "tactical move"}<|im_end|>\n<|im_start|>user\nObjective: ${objective}\nScreenshot Attached.\n<|im_end|>\n<|im_start|>assistant\n`;
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    mode: 'cors',
+                    headers: {
+                        "Authorization": `Bearer ${key}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        inputs: {
+                            image: imageData,
+                            text: prompt
+                        },
+                        parameters: { max_new_tokens: 256, return_full_text: false }
+                    })
+                });
+
+                if (!response.ok) {
+                    if(response.status === 503) throw new Error("Model is currently loading on HF servers. Please wait 30 seconds.");
+                    if(response.status === 429) throw new Error("Rate limit exceeded. Slowing down...");
+                    throw new Error(`HF Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const text = data[0]?.generated_text || data.generated_text || "";
+                
+                // Attempt to extract JSON from the chat-style output
+                const jsonMatch = text.match(/\{.*\}/s);
+                return jsonMatch ? JSON.parse(jsonMatch[0]) : { analysis: "Processing text...", command: text };
+            } catch (fetchErr) {
+                // Check if it's specifically a CORS/Network failure
+                if (fetchErr.message === 'Failed to fetch') {
+                    throw new Error("Network Blocked: Check your internet or HF Token validity.");
+                }
+                throw fetchErr;
+            }
+        }
+
+        function stopAgent() {
+            agentActive = false;
+            if (screenStream) screenStream.getTracks().forEach(track => track.stop());
+            const status = document.getElementById('statusIndicator');
+            status.innerText = "Status: Standby";
+            status.classList.remove('agent-pulse', 'bg-blue-600');
+            log("Core shutdown complete.", "error");
+        }
+    </script>
+</body>
+</html>
