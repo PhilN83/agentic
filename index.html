@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HF Surgical Agent (v3.6 - Deep Debug)</title>
+    <title>HF Surgical Agent (v3.7 - Edge Bypass)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .agent-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
@@ -20,7 +20,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-blue-900/30 pb-6 gap-4">
             <div>
                 <h1 class="text-3xl font-black tracking-tighter text-blue-500 uppercase italic">HF <span class="text-white not-italic">Surgical Agent</span></h1>
-                <p class="text-slate-500 text-xs font-mono tracking-widest mt-1 uppercase">Cloud Deployment: v3.6 Edge Debug Mode</p>
+                <p class="text-slate-500 text-xs font-mono tracking-widest mt-1 uppercase">Cloud Deployment: v3.7 Edge Bypass Mode</p>
             </div>
             <div id="statusIndicator" class="px-4 py-2 rounded-full bg-slate-900 text-[10px] font-bold border border-slate-800 tracking-widest uppercase transition-all duration-500">
                 Status: Standby
@@ -52,6 +52,16 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Edge Helper Card -->
+                <div class="bg-blue-950/20 border border-blue-900/50 p-4 rounded-xl text-[10px] text-blue-300 space-y-2">
+                    <p class="font-bold uppercase tracking-widest">Edge "Failed to Fetch" Fix:</p>
+                    <ol class="list-decimal list-inside space-y-1 opacity-80">
+                        <li>Click the 🔒 icon in the URL bar (top left).</li>
+                        <li>Toggle <b>"Tracking prevention for this site"</b> to <b>OFF</b>.</li>
+                        <li>Refresh this page and try again.</li>
+                    </ol>
+                </div>
             </div>
 
             <div class="lg:col-span-7 space-y-4">
@@ -61,7 +71,7 @@
                         <div id="cycleCount" class="text-[10px] font-mono text-slate-600">CYCLES: 0</div>
                     </div>
                     <div id="logConsole" class="flex-1 overflow-y-auto font-mono text-[11px] space-y-2 pr-2">
-                        <div class="text-slate-600 italic">> Edge Browser Optimization Active.</div>
+                        <div class="text-slate-600 italic">> Edge Tracking Prevention Bypass Loaded.</div>
                     </div>
                 </div>
             </div>
@@ -90,28 +100,34 @@
         }
 
         async function testHandshake(key) {
-            log("Attempting handshake with Bypass Headers...", "info");
+            log("Running Edge-Optimized Handshake...", "info");
             try {
-                // Testing with a simpler prompt to verify permissions
+                // We use a simplified fetch to check if the network path is open at all
                 const res = await fetch("https://api-inference.huggingface.co/models/Qwen/Qwen2.5-VL-7B-Instruct", {
                     method: "POST",
                     headers: { 
                         "Authorization": `Bearer ${key.trim()}`, 
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ inputs: "Permissions check" })
+                    body: JSON.stringify({ inputs: "ping" }),
+                    cache: "no-cache"
                 });
 
-                if (res.status === 200) {
-                    log("HANDSHAKE OK: Token is healthy.", "action");
+                if (res.ok) {
+                    log("HANDSHAKE OK: Connection and Token verified.", "action");
                     return true;
                 } else {
                     const errorBody = await res.text();
-                    log(`SERVER REJECTED (${res.status}): ${errorBody}`, "error");
+                    if (res.status === 401) {
+                        log("AUTH ERROR (401): Token invalid or scope incorrect.", "error");
+                    } else {
+                        log(`SERVER REJECTED (${res.status}): ${errorBody.substring(0, 100)}`, "error");
+                    }
                     return false;
                 }
             } catch (e) {
-                log(`BROWSER-LEVEL BLOCK: ${e.message}. This usually means Edge is preventing the outbound call. Try disabling 'Tracking Prevention' for this page.`, "error");
+                log(`BROWSER-LEVEL BLOCK: ${e.message}.`, "error");
+                log("ACTION REQUIRED: Microsoft Edge is blocking the API call. Please click the Lock 🔒 icon in the URL bar and turn OFF 'Tracking prevention for this site'.", "info");
                 return false;
             }
         }
@@ -124,13 +140,16 @@
             if (!healthy) return;
 
             try {
-                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" } });
+                screenStream = await navigator.mediaDevices.getDisplayMedia({ 
+                    video: { cursor: "always" },
+                    audio: false 
+                });
                 videoTrack = screenStream.getVideoTracks()[0];
                 agentActive = true;
                 document.getElementById('statusIndicator').innerText = "Status: ACTIVE";
                 runCycle(document.getElementById('userObjective').value, key);
             } catch (err) {
-                log("Display Error: " + err.message, "error");
+                log("Display Media Error: " + err.message, "error");
             }
         }
 
@@ -143,7 +162,10 @@
                 const response = await callHF(objective, key, base64);
                 
                 if (response.error) throw new Error(response.error);
-                log(response.analysis || "Checking signals...", "thought");
+                
+                log(response.analysis || "Observing display...", "thought");
+                if (response.command) log(`CMD: ${response.command}`, "action");
+
                 if (agentActive) setTimeout(() => runCycle(objective, key), 15000);
             } catch (err) {
                 log(`CYCLE FAILED: ${err.message}`, "error");
@@ -152,19 +174,24 @@
         }
 
         async function captureFrame() {
-            const imageCapture = new ImageCapture(videoTrack);
-            const bitmap = await imageCapture.grabFrame();
-            const canvas = document.createElement('canvas');
-            canvas.width = 1024;
-            canvas.height = (bitmap.height / bitmap.width) * 1024;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
+            try {
+                const imageCapture = new ImageCapture(videoTrack);
+                const bitmap = await imageCapture.grabFrame();
+                const canvas = document.createElement('canvas');
+                // Limit resolution to reduce payload size for Edge reliability
+                canvas.width = 1024;
+                canvas.height = (bitmap.height / bitmap.width) * 1024;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                return canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
+            } catch (e) {
+                throw new Error("Frame Capture Failed: " + e.message);
+            }
         }
 
         async function callHF(objective, key, imageData) {
             const url = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-VL-7B-Instruct";
-            const prompt = `<|system|>Objective: ${objective}. JSON: {"analysis": "...", "command": "..."} <|user|> <|image|>`;
+            const prompt = `<|system|>Objective: ${objective}. Output valid JSON: {"analysis": "reasoning", "command": "action"} <|user|> <|image|>`;
             
             try {
                 const res = await fetch(url, {
@@ -174,17 +201,23 @@
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        inputs: { image: imageData, text: prompt }
+                        inputs: { image: imageData, text: prompt },
+                        parameters: { max_new_tokens: 150 }
                     })
                 });
 
-                if (!res.ok) return { error: `Server Response ${res.status}` };
+                if (!res.ok) return { error: `Server Status ${res.status}` };
                 const data = await res.json();
                 const text = Array.isArray(data) ? data[0].generated_text : data.generated_text;
+                
+                // Attempt JSON extraction
                 const match = text?.match(/\{.*\}/s);
-                return match ? JSON.parse(match[0]) : { analysis: text };
+                if (match) {
+                    try { return JSON.parse(match[0]); } catch(e) { return { analysis: text }; }
+                }
+                return { analysis: text };
             } catch (e) {
-                return { error: "Network/CORS Blocked" };
+                return { error: "Network call blocked by browser security" };
             }
         }
 
@@ -192,7 +225,8 @@
             agentActive = false;
             if (screenStream) screenStream.getTracks().forEach(t => t.stop());
             document.getElementById('statusIndicator').innerText = "Status: Standby";
-            log("Agent Terminated.", "info");
+            document.getElementById('statusIndicator').classList.remove('agent-pulse', 'bg-blue-600');
+            log("Surgical Agent Standby.", "info");
         }
     </script>
 </body>
