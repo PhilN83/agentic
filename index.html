@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HF Surgical Agent (v3.2 - CORS Resilient)</title>
+    <title>HF Surgical Agent (v3.6 - Deep Debug)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .agent-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
@@ -20,7 +20,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-blue-900/30 pb-6 gap-4">
             <div>
                 <h1 class="text-3xl font-black tracking-tighter text-blue-500 uppercase italic">HF <span class="text-white not-italic">Surgical Agent</span></h1>
-                <p class="text-slate-500 text-xs font-mono tracking-widest mt-1 uppercase">Cloud Deployment: GitHub Pages / v3.2 Resilient</p>
+                <p class="text-slate-500 text-xs font-mono tracking-widest mt-1 uppercase">Cloud Deployment: v3.6 Edge Debug Mode</p>
             </div>
             <div id="statusIndicator" class="px-4 py-2 rounded-full bg-slate-900 text-[10px] font-bold border border-slate-800 tracking-widest uppercase transition-all duration-500">
                 Status: Standby
@@ -28,45 +28,40 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <!-- Left Panel: Configuration -->
             <div class="lg:col-span-5 space-y-4">
                 <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 shadow-2xl maker-glow">
                     <div class="mb-4">
-                        <label class="block text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-2">HF Token (Use 'Fine-grained' for best results)</label>
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-2">HF Token (Fine-grained: 'Inference Providers')</label>
                         <input type="password" id="apiKey" placeholder="hf_..." 
                                class="w-full bg-black border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 transition-all font-mono text-sm">
                     </div>
 
-                    <h2 class="text-xs font-bold uppercase mb-4 text-slate-400 tracking-widest flex items-center gap-2">
-                        Strategy: Profit Target
-                        <span class="text-[9px] bg-blue-950 text-blue-400 px-2 py-0.5 rounded border border-blue-900">Zero Maker Fee Active</span>
-                    </h2>
-                    <textarea id="userObjective" rows="8" 
+                    <h2 class="text-xs font-bold uppercase mb-4 text-slate-400 tracking-widest">Target Objective</h2>
+                    <textarea id="userObjective" rows="6" 
                               class="w-full bg-black/50 border border-slate-800 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-blue-500 transition-all leading-relaxed"
-                              placeholder="Monitor the price. If Profit Target is reached, alert me to place a LIMIT order to utilize Zero Maker Fees."></textarea>
+                              placeholder="Monitor the grid. Alert for Profit Targets."></textarea>
                     
                     <div class="flex flex-col gap-3 mt-6">
                         <button onclick="startAgent()" id="runBtn"
                                 class="w-full bg-blue-600 hover:bg-blue-400 text-white font-black py-4 rounded-xl transition-all text-xs uppercase tracking-widest shadow-lg">
-                            Initialize Vision Loop
+                            Init & Test Handshake
                         </button>
                         <button onclick="stopAgent()" 
                                 class="w-full bg-slate-800/50 hover:bg-red-900 text-white py-2 rounded-xl transition-all text-[10px] font-bold uppercase tracking-widest border border-slate-700">
-                            Terminate Loop
+                            Stop
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Panel: Logs -->
             <div class="lg:col-span-7 space-y-4">
-                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 h-[550px] flex flex-col shadow-2xl">
+                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 h-[500px] flex flex-col shadow-2xl">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xs font-bold uppercase text-slate-400 tracking-widest text-blue-500">Execution Audit</h2>
-                        <div id="cycleCount" class="text-[10px] font-mono text-slate-600 font-bold tracking-widest uppercase">Cycles: 0</div>
+                        <h2 class="text-xs font-bold uppercase text-slate-400 tracking-widest">Execution Stream</h2>
+                        <div id="cycleCount" class="text-[10px] font-mono text-slate-600">CYCLES: 0</div>
                     </div>
-                    <div id="logConsole" class="flex-1 overflow-y-auto font-mono text-[11px] space-y-3 pr-2 scroll-smooth">
-                        <div class="text-slate-600 italic">> GitHub SSL Active. Awaiting HF Handshake...</div>
+                    <div id="logConsole" class="flex-1 overflow-y-auto font-mono text-[11px] space-y-2 pr-2">
+                        <div class="text-slate-600 italic">> Edge Browser Optimization Active.</div>
                     </div>
                 </div>
             </div>
@@ -84,9 +79,9 @@
             const div = document.createElement('div');
             const styles = {
                 'info': 'text-slate-500',
-                'thought': 'text-blue-300 border-l-2 border-blue-900/50 pl-3 ml-1',
-                'action': 'text-emerald-400 font-bold bg-emerald-950/20 p-2 rounded-lg border border-emerald-900/30',
-                'error': 'text-red-400 bg-red-950/20 p-2 rounded-lg border border-red-900/30'
+                'thought': 'text-blue-300 border-l border-blue-900/50 pl-3',
+                'action': 'text-emerald-400 font-bold',
+                'error': 'text-red-400 font-bold bg-red-950/20 p-2 rounded border border-red-900/30'
             };
             div.className = styles[type] || 'text-slate-500';
             div.innerHTML = `<span class="opacity-30 text-[9px] mr-2">${new Date().toLocaleTimeString()}</span> ${msg}`;
@@ -94,57 +89,64 @@
             logConsole.scrollTop = logConsole.scrollHeight;
         }
 
+        async function testHandshake(key) {
+            log("Attempting handshake with Bypass Headers...", "info");
+            try {
+                // Testing with a simpler prompt to verify permissions
+                const res = await fetch("https://api-inference.huggingface.co/models/Qwen/Qwen2.5-VL-7B-Instruct", {
+                    method: "POST",
+                    headers: { 
+                        "Authorization": `Bearer ${key.trim()}`, 
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ inputs: "Permissions check" })
+                });
+
+                if (res.status === 200) {
+                    log("HANDSHAKE OK: Token is healthy.", "action");
+                    return true;
+                } else {
+                    const errorBody = await res.text();
+                    log(`SERVER REJECTED (${res.status}): ${errorBody}`, "error");
+                    return false;
+                }
+            } catch (e) {
+                log(`BROWSER-LEVEL BLOCK: ${e.message}. This usually means Edge is preventing the outbound call. Try disabling 'Tracking Prevention' for this page.`, "error");
+                return false;
+            }
+        }
+
         async function startAgent() {
             const key = document.getElementById('apiKey').value;
-            const objective = document.getElementById('userObjective').value;
+            if (!key) return log("No token provided.", "error");
 
-            if (!key.startsWith('hf_')) return log("AUTH ERROR: Invalid HF Token format.", "error");
+            const healthy = await testHandshake(key);
+            if (!healthy) return;
 
             try {
-                log("Opening Secure Display Stream...");
                 screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" } });
                 videoTrack = screenStream.getVideoTracks()[0];
-                
                 agentActive = true;
-                const status = document.getElementById('statusIndicator');
-                status.innerText = "Status: ACTIVE";
-                status.classList.add('agent-pulse', 'bg-blue-600', 'text-white');
-                
-                runCycle(objective, key);
+                document.getElementById('statusIndicator').innerText = "Status: ACTIVE";
+                runCycle(document.getElementById('userObjective').value, key);
             } catch (err) {
-                log("BROWSER DENIED: " + err.message, "error");
+                log("Display Error: " + err.message, "error");
             }
         }
 
         async function runCycle(objective, key) {
             if (!agentActive) return;
-
             try {
                 cycleCounter++;
                 document.getElementById('cycleCount').innerText = `CYCLES: ${cycleCounter}`;
+                const base64 = await captureFrame();
+                const response = await callHF(objective, key, base64);
                 
-                log("Syncing viewport frame...", "info");
-                const base64Image = await captureFrame();
-
-                const response = await callHF(objective, key, base64Image);
-                
-                if (response.error) {
-                    if (response.error.includes("loading")) {
-                        log("HF Model is booting up. Holding for 20s...", "info");
-                        setTimeout(() => runCycle(objective, key), 20000);
-                        return;
-                    }
-                    throw new Error(response.error);
-                }
-
-                log(response.analysis || "Monitoring...", "thought");
-                if(response.command) log(`MAKER SIGNAL: ${response.command}`, "action");
-
-                if (agentActive) {
-                    setTimeout(() => runCycle(objective, key), 15000); 
-                }
+                if (response.error) throw new Error(response.error);
+                log(response.analysis || "Checking signals...", "thought");
+                if (agentActive) setTimeout(() => runCycle(objective, key), 15000);
             } catch (err) {
-                log(`HANDSHAKE FAILED: ${err.message}`, "error");
+                log(`CYCLE FAILED: ${err.message}`, "error");
                 if (agentActive) setTimeout(() => runCycle(objective, key), 10000);
             }
         }
@@ -153,21 +155,18 @@
             const imageCapture = new ImageCapture(videoTrack);
             const bitmap = await imageCapture.grabFrame();
             const canvas = document.createElement('canvas');
-            canvas.width = 1024; 
+            canvas.width = 1024;
             canvas.height = (bitmap.height / bitmap.width) * 1024;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL('image/jpeg', 0.4).split(',')[1];
+            return canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
         }
 
         async function callHF(objective, key, imageData) {
             const url = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-VL-7B-Instruct";
-            const prompt = `<|system|>Objective: ${objective}. Priority: Profit Targets via LIMIT orders for Zero Maker Fees. Return JSON: {"analysis": "reasoning", "command": "action"} <|user|> <|image|>`;
-
+            const prompt = `<|system|>Objective: ${objective}. JSON: {"analysis": "...", "command": "..."} <|user|> <|image|>`;
+            
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000);
-
                 const res = await fetch(url, {
                     method: "POST",
                     headers: {
@@ -175,36 +174,25 @@
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        inputs: { image: imageData, text: prompt },
-                        parameters: { max_new_tokens: 128 }
-                    }),
-                    signal: controller.signal
+                        inputs: { image: imageData, text: prompt }
+                    })
                 });
 
-                clearTimeout(timeoutId);
-
-                if (!res.ok) {
-                    const errorData = await res.json().catch(() => ({}));
-                    return { error: errorData.error || `HTTP ${res.status}` };
-                }
-
+                if (!res.ok) return { error: `Server Response ${res.status}` };
                 const data = await res.json();
-                let rawText = Array.isArray(data) ? data[0].generated_text : data.generated_text;
-                const jsonMatch = rawText.match(/\{.*\}/s);
-                return jsonMatch ? JSON.parse(jsonMatch[0]) : { analysis: rawText };
+                const text = Array.isArray(data) ? data[0].generated_text : data.generated_text;
+                const match = text?.match(/\{.*\}/s);
+                return match ? JSON.parse(match[0]) : { analysis: text };
             } catch (e) {
-                if (e.name === 'AbortError') return { error: "Request Timed Out" };
-                return { error: "Network Blocked. Check AdBlocker or HF Token Permissions." };
+                return { error: "Network/CORS Blocked" };
             }
         }
 
         function stopAgent() {
             agentActive = false;
-            if (screenStream) screenStream.getTracks().forEach(track => track.stop());
-            const status = document.getElementById('statusIndicator');
-            status.innerText = "Status: Standby";
-            status.classList.remove('agent-pulse', 'bg-blue-600');
-            log("Surgical Loop Stopped.", "info");
+            if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+            document.getElementById('statusIndicator').innerText = "Status: Standby";
+            log("Agent Terminated.", "info");
         }
     </script>
 </body>
