@@ -3,71 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HF Surgical Agent (v4.0 - Network Force)</title>
+    <title>HF Surgical Agent (v4.1 - Proxy Bridge)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .agent-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .agent-pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
         #logConsole::-webkit-scrollbar { width: 4px; }
-        #logConsole::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .maker-glow { box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+        #logConsole::-webkit-scrollbar-thumb { background: #334155; }
     </style>
 </head>
-<body class="bg-[#050507] text-slate-100 font-sans p-4 md:p-8">
+<body class="bg-[#050507] text-slate-100 font-sans p-4">
 
     <div class="max-w-6xl mx-auto">
-        <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-blue-900/30 pb-6 gap-4">
+        <div class="flex justify-between items-center mb-8 border-b border-blue-900/30 pb-6">
             <div>
-                <h1 class="text-3xl font-black tracking-tighter text-blue-500 uppercase italic">HF <span class="text-white not-italic">Surgical Agent</span></h1>
-                <p class="text-slate-500 text-xs font-mono tracking-widest mt-1 uppercase">Cloud Deployment: v4.0 Network Force</p>
+                <h1 class="text-3xl font-black text-blue-500 uppercase italic text-white">HF <span class="text-blue-500">PLAN C</span></h1>
+                <p class="text-slate-500 text-[10px] font-mono uppercase tracking-widest">v4.1 Python Proxy Mode</p>
             </div>
-            <div id="statusIndicator" class="px-4 py-2 rounded-full bg-slate-900 text-[10px] font-bold border border-slate-800 tracking-widest uppercase transition-all duration-500">
-                Status: Standby
+            <div id="bridgeStatus" class="px-4 py-2 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold border border-slate-700 uppercase">
+                Bridge: Disconnected
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div class="lg:col-span-5 space-y-4">
-                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 shadow-2xl maker-glow">
+                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 shadow-2xl">
                     <div class="mb-4">
-                        <label class="block text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-2">HF Token (Fine-grained: 'Inference Providers')</label>
-                        <input type="password" id="apiKey" placeholder="hf_..." 
-                               class="w-full bg-black border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 transition-all font-mono text-sm">
+                        <label class="block text-[10px] font-bold uppercase text-blue-400 mb-2">Hugging Face Token</label>
+                        <input type="password" id="apiKey" class="w-full bg-black border border-slate-700 rounded-lg p-3 text-sm text-white outline-none" placeholder="hf_...">
                     </div>
-
-                    <h2 class="text-xs font-bold uppercase mb-4 text-slate-400 tracking-widest">Target Objective</h2>
-                    <textarea id="userObjective" rows="6" 
-                              class="w-full bg-black/50 border border-slate-800 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-blue-500 transition-all leading-relaxed"
-                              placeholder="Monitor the grid. Alert for Profit Targets."></textarea>
-                    
-                    <div class="flex flex-col gap-3 mt-6">
-                        <button onclick="startAgent()" id="runBtn"
-                                class="w-full bg-blue-600 hover:bg-blue-400 text-white font-black py-4 rounded-xl transition-all text-xs uppercase tracking-widest shadow-lg">
-                            Init & Test Handshake
-                        </button>
-                        <button onclick="stopAgent()" 
-                                class="w-full bg-slate-800/50 hover:bg-red-900 text-white py-2 rounded-xl transition-all text-[10px] font-bold uppercase tracking-widest border border-slate-700">
-                            Stop
-                        </button>
-                    </div>
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2">Autonomous Objective</label>
+                    <textarea id="userObjective" rows="4" class="w-full bg-black border border-slate-800 rounded-xl p-4 text-sm outline-none" placeholder="Go to Google and search for bananas."></textarea>
+                    <button onclick="startAgent()" id="runBtn" class="w-full mt-4 bg-blue-600 hover:bg-blue-500 py-4 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg">Launch Plan C Agent</button>
                 </div>
-
-                <!-- Edge Helper Card -->
-                <div class="bg-blue-950/20 border border-blue-900/50 p-4 rounded-xl text-[10px] text-blue-300 space-y-2">
-                    <p class="font-bold uppercase tracking-widest">Edge "Hard Block" detected:</p>
-                    <p class="opacity-80">This usually happens when the browser detects a cross-domain request from a frame. If the error persists, try opening this page in a <strong>Private/Incognito</strong> window to bypass cached security policies.</p>
+                <div class="bg-black rounded-2xl border border-slate-800 overflow-hidden">
+                    <canvas id="snapshotPreview" class="w-full h-48 bg-slate-950 object-contain"></canvas>
                 </div>
             </div>
 
-            <div class="lg:col-span-7 space-y-4">
-                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 h-[500px] flex flex-col shadow-2xl">
+            <div class="lg:col-span-7">
+                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 h-[500px] flex flex-col">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xs font-bold uppercase text-slate-400 tracking-widest">Execution Stream</h2>
-                        <div id="cycleCount" class="text-[10px] font-mono text-slate-600">CYCLES: 0</div>
+                        <div id="statusTag" class="text-[10px] font-mono text-blue-500 uppercase italic">Proxy Active</div>
                     </div>
                     <div id="logConsole" class="flex-1 overflow-y-auto font-mono text-[11px] space-y-2 pr-2">
-                        <div class="text-slate-600 italic">> Force-Proxy Engine Ready.</div>
+                        <div class="text-slate-600 italic">> Python Proxy Middleman Required.</div>
                     </div>
                 </div>
             </div>
@@ -76,167 +57,84 @@
 
     <script>
         let agentActive = false;
-        let screenStream = null;
         let videoTrack = null;
-        let cycleCounter = 0;
-        const logConsole = document.getElementById('logConsole');
-
-        function sanitizeString(str) {
-            return str.replace(/[^\x20-\x7E]/g, "").trim();
-        }
+        let ws = null;
 
         function log(msg, type = 'info') {
             const div = document.createElement('div');
-            const styles = {
-                'info': 'text-slate-500',
-                'thought': 'text-blue-300 border-l border-blue-900/50 pl-3',
-                'action': 'text-emerald-400 font-bold',
-                'error': 'text-red-400 font-bold bg-red-950/20 p-2 rounded border border-red-900/30'
-            };
-            div.className = styles[type] || 'text-slate-500';
-            div.innerHTML = `<span class="opacity-30 text-[9px] mr-2">${new Date().toLocaleTimeString()}</span> ${msg}`;
-            logConsole.appendChild(div);
-            logConsole.scrollTop = logConsole.scrollHeight;
-        }
-
-        async function testHandshake(key) {
-            const cleanKey = sanitizeString(key);
-            log("Attempting Force-Handshake (Priority: High)...", "info");
-            
-            try {
-                // Using credentials: omit to avoid triggering tracking protection
-                // and priority: high to ensure it bypasses standard queueing
-                const res = await fetch("https://api-inference.huggingface.co/models/Qwen/Qwen2.5-VL-7B-Instruct", {
-                    method: "POST",
-                    headers: { 
-                        "Authorization": `Bearer ${cleanKey}`, 
-                        "Content-Type": "application/json",
-                        "X-Wait-For-Model": "true"
-                    },
-                    body: JSON.stringify({ inputs: "Handshake probe." }),
-                    credentials: "omit",
-                    mode: "cors",
-                    cache: "no-store",
-                    priority: "high"
-                });
-
-                if (res.ok) {
-                    log("HANDSHAKE SUCCESS: Pipeline established.", "action");
-                    return true;
-                } else {
-                    const errorText = await res.text();
-                    log(`API Rejected (${res.status}): ${errorText.substring(0, 100)}`, "error");
-                    return false;
-                }
-            } catch (e) {
-                log(`CRITICAL FETCH BLOCK: ${e.name} - ${e.message}`, "error");
-                log("DIAGNOSTIC: Edge is physically preventing the request. Please ensure the 'Tracking Prevention' toggle is explicitly OFF for this domain and that no AdBlocker is running.", "info");
-                return false;
-            }
+            const styles = { 'action': 'text-emerald-400 font-bold', 'thought': 'text-blue-400 italic', 'error': 'text-red-400 font-bold', 'info': 'text-slate-500' };
+            div.className = styles[type] || styles.info;
+            div.innerHTML = `<span class="opacity-30 mr-2">${new Date().toLocaleTimeString()}</span> ${msg}`;
+            const console = document.getElementById('logConsole');
+            console.appendChild(div);
+            console.scrollTop = console.scrollHeight;
         }
 
         async function startAgent() {
-            const key = document.getElementById('apiKey').value;
-            if (!key) return log("No token provided.", "error");
-
-            const healthy = await testHandshake(key);
-            if (!healthy) return;
-
-            try {
-                screenStream = await navigator.mediaDevices.getDisplayMedia({ 
-                    video: { cursor: "always" },
-                    audio: false 
-                });
-                videoTrack = screenStream.getVideoTracks()[0];
+            ws = new WebSocket("ws://localhost:8765");
+            ws.onopen = async () => {
+                document.getElementById('bridgeStatus').innerText = "Bridge: Connected";
+                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                videoTrack = stream.getVideoTracks()[0];
                 agentActive = true;
-                document.getElementById('statusIndicator').innerText = "Status: ACTIVE";
-                document.getElementById('statusIndicator').classList.add('agent-pulse', 'bg-blue-600');
-                runCycle(document.getElementById('userObjective').value, key);
-            } catch (err) {
-                log("Display Media Error: " + err.message, "error");
-            }
+                log("Mission Started via Plan C Proxy.", "info");
+                runLoop();
+            };
+            ws.onerror = () => log("Python Bridge not found. Run browser_bridge.py first.", "error");
         }
 
-        async function runCycle(objective, key) {
+        async function runLoop() {
             if (!agentActive) return;
-            try {
-                cycleCounter++;
-                document.getElementById('cycleCount').innerText = `CYCLES: ${cycleCounter}`;
-                const base64 = await captureFrame();
-                const response = await callHF(objective, key, base64);
-                
-                if (response.error) throw new Error(response.error);
-                
-                log(response.analysis || "Observing display...", "thought");
-                if (response.command) log(`CMD: ${response.command}`, "action");
-
-                if (agentActive) setTimeout(() => runCycle(objective, key), 15000);
-            } catch (err) {
-                log(`CYCLE FAILED: ${err.message}`, "error");
-                if (agentActive) setTimeout(() => runCycle(objective, key), 10000);
+            const objective = document.getElementById('userObjective').value;
+            const base64 = await captureFrame();
+            
+            log("Sending data through Python Proxy...", "info");
+            const decision = await callProxyHF(objective, base64);
+            
+            if (decision && decision.command) {
+                log(`Agent Thought: ${decision.analysis || decision.thought}`, "thought");
+                if (decision.command !== "wait") {
+                    ws.send(JSON.stringify(decision));
+                    log(`Bridge Action: ${decision.command}`, "action");
+                }
             }
+            setTimeout(runLoop, 10000);
         }
 
         async function captureFrame() {
-            try {
-                const imageCapture = new ImageCapture(videoTrack);
-                const bitmap = await imageCapture.grabFrame();
-                const canvas = document.createElement('canvas');
-                canvas.width = 1024;
-                canvas.height = (bitmap.height / bitmap.width) * 1024;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-                return canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
-            } catch (e) {
-                throw new Error("Frame Capture Failed: " + e.message);
-            }
+            const imageCapture = new ImageCapture(videoTrack);
+            const bitmap = await imageCapture.grabFrame();
+            const canvas = document.getElementById('snapshotPreview');
+            canvas.width = 1000; canvas.height = (bitmap.height / bitmap.width) * 1000;
+            canvas.getContext('2d').drawImage(bitmap, 0, 0, 1000, canvas.height);
+            return canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
         }
 
-        async function callHF(objective, key, imageData) {
-            const url = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-VL-7B-Instruct";
-            const cleanKey = sanitizeString(key);
-            const prompt = `<|system|>Objective: ${objective}. Output valid JSON: {"analysis": "reasoning", "command": "action"} <|user|> <|image|>`;
-            
+        async function callProxyHF(objective, base64) {
+            const apiKey = document.getElementById('apiKey').value;
+            const prompt = `<|system|>Objective: ${objective}. Output JSON: {"thought": "reasoning", "command": "click", "x": 500, "y": 500, "text": "optional"} <|user|><|image|>Analyze this screen for the objective.`;
+
             try {
-                const res = await fetch(url, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${cleanKey}`,
-                        "Content-Type": "application/json",
-                        "X-Wait-For-Model": "true"
-                    },
+                // WE TALK TO THE LOCAL PYTHON SCRIPT, NOT HUGGING FACE DIRECTLY
+                const response = await fetch("http://localhost:5000/proxy/hf", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        inputs: { image: imageData, text: prompt },
-                        parameters: { max_new_tokens: 200 }
-                    }),
-                    credentials: "omit",
-                    mode: "cors"
+                        apiKey: apiKey,
+                        payload: {
+                            inputs: { image: base64, text: prompt },
+                            parameters: { max_new_tokens: 300 }
+                        }
+                    })
                 });
-
-                if (!res.ok) return { error: `Server Status ${res.status}` };
-                const data = await res.json();
-                
-                let text = "";
-                if (Array.isArray(data)) text = data[0].generated_text;
-                else if (data.generated_text) text = data.generated_text;
-                else text = JSON.stringify(data);
-                
+                const data = await response.json();
+                const text = Array.isArray(data) ? data[0].generated_text : data.generated_text;
                 const match = text?.match(/\{.*\}/s);
-                if (match) {
-                    try { return JSON.parse(match[0]); } catch(e) { return { analysis: text }; }
-                }
-                return { analysis: text };
+                return match ? JSON.parse(match[0]) : { thought: text, command: "wait" };
             } catch (e) {
-                return { error: "Network call blocked by browser security logic" };
+                log("Proxy Error: " + e.message, "error");
+                return null;
             }
-        }
-
-        function stopAgent() {
-            agentActive = false;
-            if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-            document.getElementById('statusIndicator').innerText = "Status: Standby";
-            document.getElementById('statusIndicator').classList.remove('agent-pulse', 'bg-blue-600');
-            log("Surgical Agent Standby.", "info");
         }
     </script>
 </body>
