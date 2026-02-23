@@ -3,52 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HF Surgical Agent (v4.1 - Proxy Bridge)</title>
+    <title>HF Plan C - Debug Mode</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .agent-pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
         #logConsole::-webkit-scrollbar { width: 4px; }
         #logConsole::-webkit-scrollbar-thumb { background: #334155; }
     </style>
 </head>
 <body class="bg-[#050507] text-slate-100 font-sans p-4">
-
     <div class="max-w-6xl mx-auto">
         <div class="flex justify-between items-center mb-8 border-b border-blue-900/30 pb-6">
-            <div>
-                <h1 class="text-3xl font-black text-blue-500 uppercase italic text-white">HF <span class="text-blue-500">PLAN C</span></h1>
-                <p class="text-slate-500 text-[10px] font-mono uppercase tracking-widest">v4.1 Python Proxy Mode</p>
-            </div>
-            <div id="bridgeStatus" class="px-4 py-2 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold border border-slate-700 uppercase">
-                Bridge: Disconnected
-            </div>
+            <h1 class="text-3xl font-black italic">HF <span class="text-blue-500">PLAN C</span></h1>
+            <div id="bridgeStatus" class="px-4 py-2 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold border border-slate-700 uppercase">Bridge: Disconnected</div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div class="lg:col-span-5 space-y-4">
-                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 shadow-2xl">
-                    <div class="mb-4">
-                        <label class="block text-[10px] font-bold uppercase text-blue-400 mb-2">Hugging Face Token</label>
-                        <input type="password" id="apiKey" class="w-full bg-black border border-slate-700 rounded-lg p-3 text-sm text-white outline-none" placeholder="hf_...">
-                    </div>
-                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2">Autonomous Objective</label>
-                    <textarea id="userObjective" rows="4" class="w-full bg-black border border-slate-800 rounded-xl p-4 text-sm outline-none" placeholder="Go to Google and search for bananas."></textarea>
-                    <button onclick="startAgent()" id="runBtn" class="w-full mt-4 bg-blue-600 hover:bg-blue-500 py-4 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg">Launch Plan C Agent</button>
+                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800">
+                    <input type="password" id="apiKey" class="w-full bg-black border border-slate-700 rounded-lg p-3 text-sm mb-4" placeholder="HF Inference Token">
+                    <textarea id="userObjective" rows="4" class="w-full bg-black border border-slate-800 rounded-xl p-4 text-sm mb-4">Find the search bar on google.com and type 'bananas'</textarea>
+                    <button onclick="startAgent()" class="w-full bg-blue-600 py-4 rounded-xl text-xs font-black uppercase">Launch Agent</button>
                 </div>
-                <div class="bg-black rounded-2xl border border-slate-800 overflow-hidden">
-                    <canvas id="snapshotPreview" class="w-full h-48 bg-slate-950 object-contain"></canvas>
-                </div>
+                <canvas id="snapshotPreview" class="w-full h-48 bg-black rounded-2xl border border-slate-800 object-contain"></canvas>
             </div>
 
             <div class="lg:col-span-7">
                 <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 h-[500px] flex flex-col">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xs font-bold uppercase text-slate-400 tracking-widest">Execution Stream</h2>
-                        <div id="statusTag" class="text-[10px] font-mono text-blue-500 uppercase italic">Proxy Active</div>
-                    </div>
                     <div id="logConsole" class="flex-1 overflow-y-auto font-mono text-[11px] space-y-2 pr-2">
-                        <div class="text-slate-600 italic">> Python Proxy Middleman Required.</div>
+                        <div class="text-slate-500 italic">> Ready.</div>
                     </div>
                 </div>
             </div>
@@ -64,7 +46,7 @@
             const div = document.createElement('div');
             const styles = { 'action': 'text-emerald-400 font-bold', 'thought': 'text-blue-400 italic', 'error': 'text-red-400 font-bold', 'info': 'text-slate-500' };
             div.className = styles[type] || styles.info;
-            div.innerHTML = `<span class="opacity-30 mr-2">${new Date().toLocaleTimeString()}</span> ${msg}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
             const console = document.getElementById('logConsole');
             console.appendChild(div);
             console.scrollTop = console.scrollHeight;
@@ -77,28 +59,26 @@
                 const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
                 videoTrack = stream.getVideoTracks()[0];
                 agentActive = true;
-                log("Mission Started via Plan C Proxy.", "info");
                 runLoop();
             };
-            ws.onerror = () => log("Python Bridge not found. Run browser_bridge.py first.", "error");
+            ws.onerror = () => log("Python Bridge not found.", "error");
         }
 
         async function runLoop() {
             if (!agentActive) return;
             const objective = document.getElementById('userObjective').value;
             const base64 = await captureFrame();
+            log("Querying HF via Python Proxy...");
             
-            log("Sending data through Python Proxy...", "info");
             const decision = await callProxyHF(objective, base64);
-            
-            if (decision && decision.command) {
-                log(`Agent Thought: ${decision.analysis || decision.thought}`, "thought");
-                if (decision.command !== "wait") {
+            if (decision) {
+                log(`Thought: ${decision.thought}`, "thought");
+                if (decision.command && decision.command !== "wait") {
                     ws.send(JSON.stringify(decision));
                     log(`Bridge Action: ${decision.command}`, "action");
                 }
             }
-            setTimeout(runLoop, 10000);
+            setTimeout(runLoop, 8000);
         }
 
         async function captureFrame() {
@@ -107,15 +87,20 @@
             const canvas = document.getElementById('snapshotPreview');
             canvas.width = 1000; canvas.height = (bitmap.height / bitmap.width) * 1000;
             canvas.getContext('2d').drawImage(bitmap, 0, 0, 1000, canvas.height);
-            return canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
+            return canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
         }
 
         async function callProxyHF(objective, base64) {
             const apiKey = document.getElementById('apiKey').value;
-            const prompt = `<|system|>Objective: ${objective}. Output JSON: {"thought": "reasoning", "command": "click", "x": 500, "y": 500, "text": "optional"} <|user|><|image|>Analyze this screen for the objective.`;
+            // Stronger formatting enforcement in the prompt
+            const prompt = `Task: ${objective}. Look at the image.
+            Find exact x,y (0-1000). 
+            Response MUST be exactly this JSON format:
+            {"thought": "I see X", "command": "click", "x": 500, "y": 500, "text": ""}
+            
+            Analyze pixel data now:`;
 
             try {
-                // WE TALK TO THE LOCAL PYTHON SCRIPT, NOT HUGGING FACE DIRECTLY
                 const response = await fetch("http://localhost:5000/proxy/hf", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -123,16 +108,35 @@
                         apiKey: apiKey,
                         payload: {
                             inputs: { image: base64, text: prompt },
-                            parameters: { max_new_tokens: 300 }
+                            parameters: { max_new_tokens: 200 }
                         }
                     })
                 });
                 const data = await response.json();
-                const text = Array.isArray(data) ? data[0].generated_text : data.generated_text;
-                const match = text?.match(/\{.*\}/s);
-                return match ? JSON.parse(match[0]) : { thought: text, command: "wait" };
+                
+                // HF Qwen returns data[0].generated_text
+                const rawText = Array.isArray(data) ? data[0].generated_text : data.generated_text;
+                
+                if (!rawText) {
+                    log("Empty response from HF.", "error");
+                    return null;
+                }
+
+                // Extract JSON using a more robust regex
+                const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    try {
+                        return JSON.parse(jsonMatch[0]);
+                    } catch (e) {
+                        log("Found JSON but it was malformed.", "error");
+                        return { thought: rawText, command: "wait" };
+                    }
+                } else {
+                    log("Model didn't provide JSON. Raw: " + rawText.substring(0, 50), "error");
+                    return { thought: rawText, command: "wait" };
+                }
             } catch (e) {
-                log("Proxy Error: " + e.message, "error");
+                log("Proxy/Network Error.", "error");
                 return null;
             }
         }
